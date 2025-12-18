@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-@ilcf*$cc0ob81z)0znd&3t0=@n0sp1^=7dgavs_t4$nmoqetx
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+AUTH_USER_MODEL = 'users.Member'
 
 # Application definition
 
