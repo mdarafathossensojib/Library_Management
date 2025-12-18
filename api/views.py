@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -6,5 +6,5 @@ from rest_framework.decorators import api_view
 # Create your views here.
 
 @api_view()
-def hello_world(request):
-    return Response({"message": "Hello, world!"})
+def api_root_view(request):
+    return redirect('api-root')
