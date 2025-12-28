@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.filters import SearchFilter
 from books.models import Book, BorrowRecord, Record
-from books.serializers import BookSerializer, RecordSerializer, BorrowCreateSerializer, BorrowListSerializer
+from users.models import Author
+from books.serializers import BookSerializer, RecordSerializer, BorrowCreateSerializer, BorrowListSerializer, BookCreateSerializer, BookUpdateSerializer, BorrowReturnSerializer
 from books.pagination import DefaultPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
@@ -17,10 +18,17 @@ from datetime import timezone
 class BookViewSet(ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     queryset = Book.objects.select_related('author').all()
-    serializer_class = BookSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
     pagination_class = DefaultPagination
     search_fields = ['title', 'category']
+    http_method_names = ['get', 'post', 'put', 'patch', 'delete']
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return BookCreateSerializer
+        if self.request.method in ['PUT', 'PATCH']:
+            return BookUpdateSerializer
+        return BookSerializer
 
     
 class RecordViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, ListModelMixin, GenericViewSet):
@@ -50,6 +58,8 @@ class RecordBookViewSet(ModelViewSet):
         )
 
     def get_serializer_class(self):
+        if self.action == 'update':
+            return BorrowReturnSerializer
         if self.action == 'create':
             return BorrowCreateSerializer
         return BorrowListSerializer
@@ -62,22 +72,3 @@ class RecordBookViewSet(ModelViewSet):
         context['record'] = Record.objects.get(member=self.request.user)
         return context
     
-    @action(detail=True, methods=['post'])
-    def return_book(self, request, pk=None):
-        borrow = self.get_object()
-
-        if borrow.is_returned:
-            return Response(
-                {'error': 'Already returned'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        borrow.is_returned = True
-        borrow.return_date = timezone.now().date()
-        borrow.save()
-
-        book = borrow.book
-        book.is_available = True
-        book.save()
-
-        return Response({'status': 'Book returned successfully'})
